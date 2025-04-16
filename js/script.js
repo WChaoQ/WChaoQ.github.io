@@ -12,6 +12,24 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
 });
 
+// 生成随机颜色函数
+function getRandomColor() {
+  // 定义一组漂亮的颜色
+  const colors = [
+    '#2563eb', // 蓝色
+    '#10b981', // 绿色
+    '#f97316', // 橙色
+    '#8b5cf6', // 紫色
+    '#ec4899', // 粉色
+    '#ef4444', // 红色
+    '#6366f1', // 靛蓝色
+    '#14b8a6', // 青色
+    '#f59e0b'  // 琥珀色
+  ];
+  // 随机选择一个颜色
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
 async function loadNotes() {
   const notesContainer = document.getElementById('notes-container');
   
@@ -35,24 +53,20 @@ async function loadNotes() {
       // 解析Markdown内容（只需要标题和摘要）
       const content = parseMarkdown(markdownContent, true);
       
-      // 确定笔记类别样式
-      let categoryClass = 'default';
-      if (note.tags) {
-        const lowerTags = note.tags.map(tag => tag.toLowerCase());
-        if (lowerTags.includes('python')) categoryClass = 'python';
-        else if (lowerTags.includes('git')) categoryClass = 'git';
-      }
+      // 生成随机颜色
+      const randomColor = getRandomColor();
       
       // 创建笔记卡片
       const noteCard = document.createElement('div');
-      noteCard.className = `note-card ${categoryClass}`;
+      noteCard.className = 'note-card';
+      noteCard.style.borderLeftColor = randomColor; // 使用随机颜色
       noteCard.setAttribute('data-filename', note.filename);
       
       // 填充笔记卡片内容
       noteCard.innerHTML = `
         <h3>${content.title || note.title}</h3>
         <p class="date">${formatDate(note.date)}</p>
-        ${note.tags ? note.tags.map(tag => `<span class="tag">${tag}</span>`).join(' ') : ''}
+        <!-- 删除了标签部分 -->
         <p class="summary">${content.summary}</p>
         <a class="read-more" href="note.html?note=${encodeURIComponent(note.filename)}">阅读全文</a>
       `;
@@ -75,7 +89,7 @@ async function loadNotes() {
   }
 }
 
-// Markdown解析函数
+// Markdown解析函数 - 改进对代码块的处理
 function parseMarkdown(markdown, summaryOnly = false) {
   // 从Markdown中提取标题、摘要和完整内容
   const lines = markdown.split('\n');
@@ -132,37 +146,42 @@ function parseMarkdown(markdown, summaryOnly = false) {
   return { title, summary, fullContent };
 }
 
-// 简单的Markdown到HTML转换函数
+// 改进的Markdown到HTML转换函数
 function markdownToHtml(markdown) {
-  let html = markdown
-    // 标题
+  // 处理代码块 (```code```)
+  let html = markdown.replace(/```(.*?)\n([\s\S]*?)```/g, function(match, language, code) {
+    return `<pre><code class="language-${language.trim()}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+  });
+  
+  // 处理标题
+  html = html
     .replace(/^# (.*$)/gm, '<h1>$1</h1>')
     .replace(/^## (.*$)/gm, '<h2>$1</h2>')
     .replace(/^### (.*$)/gm, '<h3>$1</h3>')
     .replace(/^#### (.*$)/gm, '<h4>$1</h4>')
     
-    // 斜体和粗体
+    // 处理斜体和粗体
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     
-    // 链接
+    // 处理链接
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
     
-    // 代码块
-    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-    
-    // 行内代码
+    // 处理行内代码
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     
-    // 列表
+    // 处理无序列表
     .replace(/^\s*[\-\*]\s+(.*$)/gm, '<li>$1</li>')
     
-    // 段落
+    // 处理有序列表
+    .replace(/^\s*(\d+)\.\s+(.*$)/gm, '<li>$2</li>')
+    
+    // 处理段落 (避免处理已经处理过的HTML标签)
     .replace(/^(?!<[a-z]|\s*$)(.*$)/gm, '<p>$1</p>');
   
-  // 将连续的列表项包装在<ul>中
+  // 处理列表 (将连续的列表项包装在<ul>或<ol>中)
   html = html.replace(/(<li>.*<\/li>)(\s*<li>)/g, '$1<ul>$2');
-  html = html.replace(/(<\/li>)(?!\s*<li>|\s*<ul>)/g, '$1</ul>');
+  html = html.replace(/(<\/li>)(?!\s*<li>|\s*<ul>|\s*<ol>)/g, '$1</ul>');
   
   return html;
 }
@@ -194,22 +213,15 @@ async function loadNoteDetail(filename) {
     // 更新页面标题
     document.title = content.title || note.title;
     
-    // 确定笔记类别样式
-    let categoryClass = 'default';
-    if (note.tags) {
-      const lowerTags = note.tags.map(tag => tag.toLowerCase());
-      if (lowerTags.includes('python')) categoryClass = 'python';
-      else if (lowerTags.includes('git')) categoryClass = 'git';
-    }
+    // 生成随机颜色
+    const randomColor = getRandomColor();
     
     // 填充详情页内容
     notesContainer.innerHTML = `
-      <div class="note-header ${categoryClass}">
+      <div class="note-header" style="border-left-color: ${randomColor}">
         <h1>${content.title || note.title}</h1>
         <p class="date">${formatDate(note.date)}</p>
-        <div class="tags">
-          ${note.tags ? note.tags.map(tag => `<span class="tag">${tag}</span>`).join(' ') : ''}
-        </div>
+        <!-- 删除了标签部分 -->
       </div>
       <div class="note-content">
         ${content.fullContent}
