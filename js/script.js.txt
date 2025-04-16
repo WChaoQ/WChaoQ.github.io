@@ -1,0 +1,18 @@
+// Smooth scrolling for navigation links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function (e) {
+    e.preventDefault();
+    document.querySelector(this.getAttribute('href')).scrollIntoView({
+      behavior: 'smooth'
+    });
+  });
+});
+
+// Toggle full content for note cards
+document.querySelectorAll('.toggle-btn').forEach(button => {
+  button.addEventListener('click', () => {
+    const fullContent = button.previousElementSibling;
+    fullContent.classList.toggle('hidden');
+    button.textContent = fullContent.classList.contains('hidden') ? 'Show More' : 'Show Less';
+  });
+});
