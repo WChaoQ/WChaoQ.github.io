@@ -215,7 +215,7 @@ async function loadNoteDetail(filename) {
         ${content.fullContent}
       </div>
       <div class="note-footer">
-        <a href="index.html#notes" class="btn back-btn">返回笔记列表</a>
+        <a href="index.html" class="btn back-btn">返回首页</a>
       </div>
     `;
     
