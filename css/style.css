@@ -131,11 +131,24 @@ h1 {
   transform: translateY(20px);
   animation: fadeIn 0.6s forwards;
   cursor: pointer;
+  position: relative;
 }
 
 .note-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.read-more {
+  display: inline-block;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.read-more:hover {
+  text-decoration: underline;
 }
 
 .note-card.python {
@@ -199,6 +212,102 @@ h1 {
 
 .hidden {
   display: none;
+}
+
+/* 笔记详情页样式 */
+.note-detail-container {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin: 2rem auto;
+  max-width: 900px;
+  padding: 2rem;
+}
+
+.note-header {
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  position: relative;
+}
+
+.note-header.python {
+  border-left: 4px solid #2563eb;
+  padding-left: 1rem;
+}
+
+.note-header.git {
+  border-left: 4px solid #f97316;
+  padding-left: 1rem;
+}
+
+.note-header.default {
+  border-left: 4px solid #10b981;
+  padding-left: 1rem;
+}
+
+.note-content {
+  line-height: 1.8;
+  text-align: left;
+}
+
+.note-content h1,
+.note-content h2,
+.note-content h3 {
+  margin: 1.5rem 0 1rem;
+}
+
+.note-content p {
+  margin-bottom: 1.2rem;
+}
+
+.note-content code {
+  background: #f1f5f9;
+  border-radius: 4px;
+  font-family: monospace;
+  padding: 0.2rem 0.4rem;
+}
+
+.note-content pre {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+.note-content pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.note-content ul,
+.note-content ol {
+  margin-bottom: 1.2rem;
+  padding-left: 2rem;
+}
+
+.note-footer {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  text-align: center;
+}
+
+.back-btn {
+  display: inline-block;
+  padding: 0.6rem 1.5rem;
+  background: #e2e8f0;
+  color: #1e293b;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #cbd5e1;
+  transform: translateY(-2px);
 }
 
 footer {
