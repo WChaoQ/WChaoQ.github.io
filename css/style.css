@@ -11,60 +11,7 @@ body {
   background: #f1f5f9;
 }
 
-header {
-  background: linear-gradient(90deg, #2563eb, #3b82f6);
-  padding: 1rem 2rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-}
-
-.logo {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-nav ul {
-  list-style: none;
-  display: flex;
-  gap: 2rem;
-}
-
-nav ul li a {
-  color: #fff;
-  text-decoration: none;
-  font-weight: 600;
-  position: relative;
-  transition: color 0.3s;
-}
-
-nav ul li a::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 2px;
-  background: #f97316;
-  bottom: -6px;
-  left: 0;
-  transition: width 0.4s ease;
-}
-
-nav ul li a:hover::after {
-  width: 100%;
-}
+/* 删除了header部分相关的样式 */
 
 section {
   padding: 4rem 2rem;
@@ -74,8 +21,8 @@ section {
 }
 
 #home {
-  background: linear-gradient(135deg, #dbeafe, #f0f9ff);
-  min-height: 80vh;
+  /* 删除了背景渐变 */
+  min-height: 50vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -98,21 +45,7 @@ h1 {
   font-size: 2.8rem;
 }
 
-.btn {
-  display: inline-block;
-  padding: 0.8rem 2rem;
-  background: linear-gradient(90deg, #2563eb, #3b82f6);
-  color: #fff;
-  text-decoration: none;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
+/* 删除了.btn相关样式 */
 
 .notes-container {
   display: grid;
@@ -132,6 +65,7 @@ h1 {
   animation: fadeIn 0.6s forwards;
   cursor: pointer;
   position: relative;
+  border-left: 4px solid; /* 颜色将通过JavaScript动态设置 */
 }
 
 .note-card:hover {
@@ -151,17 +85,7 @@ h1 {
   text-decoration: underline;
 }
 
-.note-card.python {
-  border-left: 4px solid #2563eb;
-}
-
-.note-card.git {
-  border-left: 4px solid #f97316;
-}
-
-.note-card.default {
-  border-left: 4px solid #10b981;
-}
+/* 删除了特定分类的样式 */
 
 .note-card:nth-child(1) { animation-delay: 0.2s; }
 .note-card:nth-child(2) { animation-delay: 0.4s; }
@@ -188,15 +112,7 @@ h1 {
   margin-bottom: 0.5rem;
 }
 
-.tag {
-  display: inline-block;
-  background: #e2e8f0;
-  color: #1e293b;
-  padding: 0.2rem 0.8rem;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  margin-bottom: 0.5rem;
-}
+/* 删除了.tag相关样式 */
 
 .summary {
   margin-bottom: 1rem;
@@ -229,20 +145,7 @@ h1 {
   margin-bottom: 2rem;
   padding-bottom: 1rem;
   position: relative;
-}
-
-.note-header.python {
-  border-left: 4px solid #2563eb;
-  padding-left: 1rem;
-}
-
-.note-header.git {
-  border-left: 4px solid #f97316;
-  padding-left: 1rem;
-}
-
-.note-header.default {
-  border-left: 4px solid #10b981;
+  border-left: 4px solid; /* 颜色将通过JavaScript动态设置 */
   padding-left: 1rem;
 }
 
@@ -330,16 +233,6 @@ footer {
 }
 
 @media (max-width: 768px) {
-  nav {
-    flex-direction: column;
-    gap: 1rem;
-    padding: 0.5rem;
-  }
-
-  .logo {
-    font-size: 1.4rem;
-  }
-
   h1 {
     font-size: 2.2rem;
   }
@@ -350,5 +243,34 @@ footer {
 
   .hero {
     padding: 1.5rem;
+  }
+  
+  section {
+    padding: 2rem 1rem;
+  }
+  
+  .note-detail-container {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+}
+
+/* 完善响应式布局，添加更小屏幕的适配 */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.8rem;
+  }
+  
+  .hero {
+    padding: 1rem;
+  }
+  
+  .note-card {
+    padding: 1rem;
+  }
+  
+  .note-detail-container {
+    padding: 1rem;
+    margin: 0.5rem;
   }
 }
