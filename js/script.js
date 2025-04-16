@@ -17,43 +17,80 @@ async function loadNotes() {
   
   try {
     // 获取notes文件夹下的所有Markdown文件列表
-    const response = await fetch('/notes/index.json');
-    const notes = await response.json();
+    const response = await fetch('/notes/');
+    const html = await response.text();
+    
+    // 使用简单的解析来获取文件列表
+    const mdFiles = [];
+    const regex = /href="([^"]+\.md)"/g;
+    let match;
+    
+    while ((match = regex.exec(html)) !== null) {
+      mdFiles.push(match[1]);
+    }
     
     // 清空现有笔记容器
     notesContainer.innerHTML = '';
     
+    // 加载每个笔记的内容和元信息
+    const notesData = [];
+    
+    for (const filename of mdFiles) {
+      try {
+        const contentResponse = await fetch(`/notes/${filename}`);
+        const markdownContent = await contentResponse.text();
+        
+        // 解析Markdown内容
+        const content = parseMarkdown(markdownContent, true);
+        
+        // 提取日期 - 尝试从文件内容中获取，格式为yyyy-mm-dd
+        let date = new Date();
+        const dateMatch = markdownContent.match(/\d{4}-\d{2}-\d{2}/);
+        if (dateMatch) {
+          date = new Date(dateMatch[0]);
+        }
+        
+        notesData.push({
+          filename: filename,
+          title: content.title || filename.replace('.md', ''),
+          date: date,
+          content: markdownContent,
+          summary: content.summary
+        });
+      } catch (error) {
+        console.error(`加载笔记 ${filename} 失败:`, error);
+      }
+    }
+    
     // 按日期降序排序笔记（最新的在前面）
-    notes.sort((a, b) => new Date(b.date) - new Date(a.date));
+    notesData.sort((a, b) => b.date - a.date);
+    
+    // 颜色列表
+    const colors = [
+      '#3b82f6', // 蓝色
+      '#10b981', // 绿色
+      '#f97316', // 橙色
+      '#8b5cf6', // 紫色
+      '#ef4444', // 红色
+      '#06b6d4'  // 青色
+    ];
     
     // 为每个笔记创建卡片
-    for (const note of notes) {
-      // 加载笔记内容
-      const contentResponse = await fetch(`/notes/${note.filename}`);
-      const markdownContent = await contentResponse.text();
-      
-      // 解析Markdown内容（只需要标题和摘要）
-      const content = parseMarkdown(markdownContent, true);
-      
-      // 确定笔记类别样式
-      let categoryClass = 'default';
-      if (note.tags) {
-        const lowerTags = note.tags.map(tag => tag.toLowerCase());
-        if (lowerTags.includes('python')) categoryClass = 'python';
-        else if (lowerTags.includes('git')) categoryClass = 'git';
-      }
+    for (const note of notesData) {
+      // 随机选择颜色
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
       
       // 创建笔记卡片
       const noteCard = document.createElement('div');
-      noteCard.className = `note-card ${categoryClass}`;
+      noteCard.className = 'note-card';
       noteCard.setAttribute('data-filename', note.filename);
+      noteCard.style.borderLeft = `4px solid ${randomColor}`;
       
       // 填充笔记卡片内容
       noteCard.innerHTML = `
-        <h3>${content.title || note.title}</h3>
+        <h3>${note.title}</h3>
         <p class="date">${formatDate(note.date)}</p>
-        ${note.tags ? note.tags.map(tag => `<span class="tag">${tag}</span>`).join(' ') : ''}
-        <p class="summary">${content.summary}</p>
+        <p class="summary">${note.summary}</p>
         <a class="read-more" href="note.html?note=${encodeURIComponent(note.filename)}">阅读全文</a>
       `;
       
@@ -71,7 +108,7 @@ async function loadNotes() {
     
   } catch (error) {
     console.error('加载笔记失败:', error);
-    notesContainer.innerHTML = '<p>无法加载笔记。请确保您已创建 /notes/index.json 文件。</p>';
+    notesContainer.innerHTML = '<p>无法加载笔记。请确保/notes/目录中有Markdown文件。</p>';
   }
 }
 
@@ -132,58 +169,80 @@ function parseMarkdown(markdown, summaryOnly = false) {
   return { title, summary, fullContent };
 }
 
-// 简单的Markdown到HTML转换函数
+// 增强的Markdown到HTML转换函数
 function markdownToHtml(markdown) {
+  // 处理代码块 (需要在其他处理之前)
+  markdown = markdown.replace(/```([a-z]*)\n([\s\S]*?)\n```/g, (match, language, code) => {
+    const lang = language ? ` class="language-${language}"` : '';
+    return `<pre><code${lang}>${escapeHtml(code)}</code></pre>`;
+  });
+  
   let html = markdown
     // 标题
     .replace(/^# (.*$)/gm, '<h1>$1</h1>')
     .replace(/^## (.*$)/gm, '<h2>$1</h2>')
     .replace(/^### (.*$)/gm, '<h3>$1</h3>')
     .replace(/^#### (.*$)/gm, '<h4>$1</h4>')
+    .replace(/^##### (.*$)/gm, '<h5>$1</h5>')
     
     // 斜体和粗体
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     
     // 链接
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
     
-    // 代码块
-    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    // 图片
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="markdown-img">')
     
     // 行内代码
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     
-    // 列表
-    .replace(/^\s*[\-\*]\s+(.*$)/gm, '<li>$1</li>')
+    // 无序列表 (改进列表处理)
+    .replace(/^[\s]*[\-\*]\s+(.*$)/gm, '<li>$1</li>')
     
-    // 段落
+    // 有序列表
+    .replace(/^[\s]*\d+\.\s+(.*$)/gm, '<li>$1</li>')
+    
+    // 水平线
+    .replace(/^---+$/gm, '<hr>')
+    
+    // 段落 (不匹配已经处理的HTML标签)
     .replace(/^(?!<[a-z]|\s*$)(.*$)/gm, '<p>$1</p>');
+
+  // 处理列表 (将连续的列表项组合成一个列表)
+  // 无序列表
+  html = html.replace(/(<li>.*?<\/li>)(?:\s*)(?=<li>)/gs, '$1');
+  html = html.replace(/(?:^|>)(\s*<li>.*?<\/li>\s*)(?=$|<(?!li))/gs, (match, list) => {
+    return `><ul>${list}</ul>`;
+  });
   
-  // 将连续的列表项包装在<ul>中
-  html = html.replace(/(<li>.*<\/li>)(\s*<li>)/g, '$1<ul>$2');
-  html = html.replace(/(<\/li>)(?!\s*<li>|\s*<ul>)/g, '$1</ul>');
+  // 有序列表
+  html = html.replace(/(?:^|>)(\s*<li>.*?<\/li>\s*)(?=$|<(?!li))/gs, (match, list) => {
+    // 检查是否已经被无序列表处理过
+    if (match.includes('<ul>')) return match;
+    return `><ol>${list}</ol>`;
+  });
   
   return html;
 }
 
+// HTML转义函数
+function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // 加载笔记详情页面的内容
 async function loadNoteDetail(filename) {
-  const notesContainer = document.getElementById('note-detail');
-  if (!notesContainer) return;
+  const noteDetail = document.getElementById('note-detail');
+  if (!noteDetail) return;
 
   try {
-    // 先获取索引信息
-    const indexResponse = await fetch('/notes/index.json');
-    const notes = await indexResponse.json();
-    
-    // 查找匹配的笔记
-    const note = notes.find(n => n.filename === filename);
-    if (!note) {
-      notesContainer.innerHTML = '<p>找不到请求的笔记</p>';
-      return;
-    }
-    
     // 加载笔记内容
     const contentResponse = await fetch(`/notes/${filename}`);
     const markdownContent = await contentResponse.text();
@@ -191,43 +250,42 @@ async function loadNoteDetail(filename) {
     // 解析Markdown内容
     const content = parseMarkdown(markdownContent);
     
-    // 更新页面标题
-    document.title = content.title || note.title;
-    
-    // 确定笔记类别样式
-    let categoryClass = 'default';
-    if (note.tags) {
-      const lowerTags = note.tags.map(tag => tag.toLowerCase());
-      if (lowerTags.includes('python')) categoryClass = 'python';
-      else if (lowerTags.includes('git')) categoryClass = 'git';
+    // 提取日期 - 尝试从文件内容中获取，格式为yyyy-mm-dd
+    let date = new Date();
+    const dateMatch = markdownContent.match(/\d{4}-\d{2}-\d{2}/);
+    if (dateMatch) {
+      date = new Date(dateMatch[0]);
     }
     
+    // 更新页面标题
+    document.title = content.title || filename.replace('.md', '');
+    
+    // 随机颜色
+    const colors = ['#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#ef4444', '#06b6d4'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    
     // 填充详情页内容
-    notesContainer.innerHTML = `
-      <div class="note-header ${categoryClass}">
-        <h1>${content.title || note.title}</h1>
-        <p class="date">${formatDate(note.date)}</p>
-        <div class="tags">
-          ${note.tags ? note.tags.map(tag => `<span class="tag">${tag}</span>`).join(' ') : ''}
-        </div>
+    noteDetail.innerHTML = `
+      <div class="note-header" style="border-left: 4px solid ${randomColor}; padding-left: 1rem;">
+        <h1>${content.title}</h1>
+        <p class="date">${formatDate(date)}</p>
       </div>
       <div class="note-content">
         ${content.fullContent}
       </div>
       <div class="note-footer">
-        <a href="index.html" class="btn back-btn">返回首页</a>
+        <a href="index.html" class="back-btn">返回首页</a>
       </div>
     `;
     
   } catch (error) {
     console.error('加载笔记详情失败:', error);
-    notesContainer.innerHTML = '<p>加载笔记失败。请返回<a href="index.html">首页</a>重试。</p>';
+    noteDetail.innerHTML = '<p>加载笔记失败。请返回<a href="index.html">首页</a>重试。</p>';
   }
 }
 
 // 格式化日期
-function formatDate(dateString) {
-  const date = new Date(dateString);
+function formatDate(dateObj) {
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
-  return date.toLocaleDateString('zh-CN', options);
+  return dateObj.toLocaleDateString('zh-CN', options);
 }
