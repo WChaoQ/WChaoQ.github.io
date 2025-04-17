@@ -50,8 +50,8 @@ async function loadNotes() {
       const contentResponse = await fetch(`/notes/${note.filename}`);
       const markdownContent = await contentResponse.text();
       
-      // 解析Markdown内容
-      const content = parseMarkdown(markdownContent, true); // 只提取概览
+      // 使用专门的Markdown解析器解析内容
+      const content = window.mdParser.parseMarkdown(markdownContent, true); // 只提取概览
       
       // 生成随机颜色
       const randomColor = getRandomColor();
@@ -111,122 +111,6 @@ async function loadNotes() {
   }
 }
 
-// 改进的Markdown解析函数
-function parseMarkdown(markdown, summaryOnly = false) {
-  // 从Markdown中提取标题和完整内容
-  const lines = markdown.split('\n');
-  let title = '';
-  let summary = '';
-  let fullContent = '';
-  
-  // 寻找第一个标题作为笔记标题
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith('# ')) {
-      title = lines[i].substring(2).trim();
-      break;
-    }
-  }
-  
-  // 提取更好的概览（跳过标题和代码块，提取前两个段落的文本）
-  let paragraphs = [];
-  let inCodeBlock = false;
-  let currentParagraph = '';
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    // 检测代码块
-    if (line.startsWith('```')) {
-      inCodeBlock = !inCodeBlock;
-      continue;
-    }
-    
-    // 在代码块内，跳过
-    if (inCodeBlock) continue;
-    
-    // 跳过标题行
-    if (line.startsWith('#')) continue;
-    
-    // 如果是空行且已有当前段落内容，则结束当前段落
-    if (line === '' && currentParagraph !== '') {
-      paragraphs.push(currentParagraph);
-      currentParagraph = '';
-    } 
-    // 非空行且不在代码块内，添加到当前段落
-    else if (line !== '') {
-      currentParagraph += ' ' + line;
-    }
-  }
-  
-  // 处理最后一个段落
-  if (currentParagraph !== '') {
-    paragraphs.push(currentParagraph);
-  }
-  
-  // 使用前两个段落作为概览
-  if (paragraphs.length > 0) {
-    summary = paragraphs.slice(0, 2).join(' ').trim();
-    
-    // 如果概览超过250个字符，截断并添加省略号
-    if (summary.length > 250) {
-      summary = summary.substring(0, 250) + '...';
-    }
-    
-    // 将概览转换为HTML
-    summary = `<p>${summary}</p>`;
-  }
-  
-  // 如果只需要概览，则返回
-  if (summaryOnly) {
-    return { title, summary };
-  }
-  
-  // 否则进行完整的Markdown到HTML转换
-  fullContent = markdownToHtml(markdown);
-  
-  return { title, summary, fullContent };
-}
-
-// 改进的Markdown到HTML转换函数 - 添加语法高亮支持
-function markdownToHtml(markdown) {
-  // 处理代码块 (```code```)
-  let html = markdown.replace(/```(.*?)\n([\s\S]*?)```/g, function(match, language, code) {
-    return `<pre class="code-block"><code class="language-${language.trim()}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
-  });
-  
-  // 处理标题
-  html = html
-    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-    .replace(/^#### (.*$)/gm, '<h4>$1</h4>')
-    
-    // 处理斜体和粗体
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    
-    // 处理链接
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-    
-    // 处理行内代码
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    
-    // 处理无序列表
-    .replace(/^\s*[\-\*]\s+(.*$)/gm, '<li>$1</li>')
-    
-    // 处理有序列表
-    .replace(/^\s*(\d+)\.\s+(.*$)/gm, '<li>$2</li>')
-    
-    // 处理段落 (避免处理已经处理过的HTML标签)
-    .replace(/^(?!<[a-z]|\s*$)(.*$)/gm, '<p>$1</p>');
-  
-  // 处理列表 (将连续的列表项包装在<ul>或<ol>中)
-  html = html.replace(/(<li>.*<\/li>)(\s*<li>)/g, '$1<ul>$2');
-  html = html.replace(/(<\/li>)(?!\s*<li>|\s*<ul>|\s*<ol>)/g, '$1</ul>');
-  
-  return html;
-}
-
 // 加载笔记详情页面的内容
 async function loadNoteDetail(filename) {
   const notesContainer = document.getElementById('note-detail');
@@ -248,8 +132,8 @@ async function loadNoteDetail(filename) {
     const contentResponse = await fetch(`/notes/${filename}`);
     const markdownContent = await contentResponse.text();
     
-    // 解析Markdown内容
-    const content = parseMarkdown(markdownContent);
+    // 使用专门的Markdown解析器解析内容
+    const content = window.mdParser.parseMarkdown(markdownContent);
     
     // 更新页面标题
     document.title = content.title || note.title;
@@ -278,6 +162,9 @@ async function loadNoteDetail(filename) {
     // 添加页面加载动画
     document.querySelector('.note-header').style.animation = 'fadeIn 0.8s ease-in-out';
     document.querySelector('.note-content').style.animation = 'slideUp 1s ease-in-out';
+    
+    // 应用代码高亮
+    window.mdParser.applyCodeHighlighting();
     
   } catch (error) {
     console.error('加载笔记详情失败:', error);
