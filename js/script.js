@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
 });
 
-// 改进的颜色方案函数 - 使用更柔和的颜色并确保可读性
+// 改进的颜色方案函数
 function getRandomColor() {
   // 定义一组更柔和的颜色
   const colors = [
@@ -51,7 +51,7 @@ async function loadNotes() {
       const markdownContent = await contentResponse.text();
       
       // 解析Markdown内容
-      const content = parseMarkdown(markdownContent);
+      const content = parseMarkdown(markdownContent, true); // 只提取概览
       
       // 生成随机颜色
       const randomColor = getRandomColor();
@@ -62,11 +62,11 @@ async function loadNotes() {
       noteCard.style.borderLeftColor = randomColor;
       noteCard.setAttribute('data-filename', note.filename);
       
-      // 填充笔记卡片内容（现在直接显示内容，不需要阅读全文按钮）
+      // 填充笔记卡片内容（只显示概览）
       noteCard.innerHTML = `
         <h3>${content.title || note.title}</h3>
         <p class="date">${formatDate(note.date)}</p>
-        <div class="note-content-preview">${content.fullContent}</div>
+        <div class="note-overview">${content.summary}</div>
       `;
       
       // 添加到容器
@@ -117,6 +117,7 @@ function parseMarkdown(markdown, summaryOnly = false) {
   const lines = markdown.split('\n');
   let title = '';
   let summary = '';
+  let fullContent = '';
   
   // 寻找第一个标题作为笔记标题
   for (let i = 0; i < lines.length; i++) {
@@ -126,40 +127,62 @@ function parseMarkdown(markdown, summaryOnly = false) {
     }
   }
   
-  // 提取摘要（第一段非标题文字）
-  let paragraphCount = 0;
-  let contentBuffer = [];
+  // 提取更好的概览（跳过标题和代码块，提取前两个段落的文本）
+  let paragraphs = [];
+  let inCodeBlock = false;
+  let currentParagraph = '';
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
+    // 检测代码块
+    if (line.startsWith('```')) {
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+    
+    // 在代码块内，跳过
+    if (inCodeBlock) continue;
+    
     // 跳过标题行
     if (line.startsWith('#')) continue;
     
-    // 收集段落
-    if (line !== '') {
-      contentBuffer.push(line);
-    } else if (contentBuffer.length > 0) {
-      // 找到段落结束
-      if (paragraphCount < 1) {
-        // 第一段作为摘要
-        summary += contentBuffer.join(' ');
-        paragraphCount++;
-      }
-      contentBuffer = [];
+    // 如果是空行且已有当前段落内容，则结束当前段落
+    if (line === '' && currentParagraph !== '') {
+      paragraphs.push(currentParagraph);
+      currentParagraph = '';
+    } 
+    // 非空行且不在代码块内，添加到当前段落
+    else if (line !== '') {
+      currentParagraph += ' ' + line;
     }
   }
   
-  // 如果还有未处理的内容，并且还没有摘要
-  if (contentBuffer.length > 0 && paragraphCount < 1) {
-    summary += contentBuffer.join(' ');
+  // 处理最后一个段落
+  if (currentParagraph !== '') {
+    paragraphs.push(currentParagraph);
   }
   
-  // 限制摘要长度
-  summary = summary.length > 150 ? summary.substring(0, 150) + '...' : summary;
+  // 使用前两个段落作为概览
+  if (paragraphs.length > 0) {
+    summary = paragraphs.slice(0, 2).join(' ').trim();
+    
+    // 如果概览超过250个字符，截断并添加省略号
+    if (summary.length > 250) {
+      summary = summary.substring(0, 250) + '...';
+    }
+    
+    // 将概览转换为HTML
+    summary = `<p>${summary}</p>`;
+  }
   
-  // 进行Markdown到HTML的转换
-  const fullContent = markdownToHtml(markdown);
+  // 如果只需要概览，则返回
+  if (summaryOnly) {
+    return { title, summary };
+  }
+  
+  // 否则进行完整的Markdown到HTML转换
+  fullContent = markdownToHtml(markdown);
   
   return { title, summary, fullContent };
 }
@@ -234,7 +257,7 @@ async function loadNoteDetail(filename) {
     // 生成随机颜色
     const randomColor = getRandomColor();
     
-    // 填充详情页内容
+    // 填充详情页内容，使用返回图标而非按钮
     notesContainer.innerHTML = `
       <div class="note-header" style="border-left-color: ${randomColor}">
         <h1>${content.title || note.title}</h1>
@@ -244,7 +267,11 @@ async function loadNoteDetail(filename) {
         ${content.fullContent}
       </div>
       <div class="note-footer">
-        <a href="index.html#notes" class="back-btn">返回笔记列表</a>
+        <a href="index.html#notes" class="back-btn" title="返回笔记列表">
+          <svg class="back-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </a>
       </div>
     `;
     
