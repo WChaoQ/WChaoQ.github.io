@@ -93,41 +93,143 @@ function markdownToHtml(markdown) {
     .replace(/^### (.*$)/gm, '<h3>$1</h3>')
     .replace(/^#### (.*$)/gm, '<h4>$1</h4>')
     .replace(/^##### (.*$)/gm, '<h5>$1</h5>')
-    .replace(/^###### (.*$)/gm, '<h6>$1</h6>')
-    
-    // 处理斜体和粗体
+    .replace(/^###### (.*$)/gm, '<h6>$1</h6>');
+  
+  // 处理列表前的段落格式化，避免列表解析问题
+  html = formatLists(html);
+  
+  // 处理斜体和粗体 (注意顺序，先处理粗体再处理斜体)
+  html = html
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\_\_(.*?)\_\_/g, '<strong>$1</strong>') // 支持下划线方式的粗体
+    .replace(/\_(.*?)\_/g, '<em>$1</em>'); // 支持下划线方式的斜体
     
-    // 处理链接
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-    
-    // 处理行内代码
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    
-    // 处理无序列表
-    .replace(/^\s*[\-\*]\s+(.*$)/gm, '<li>$1</li>')
-    
-    // 处理有序列表
-    .replace(/^\s*(\d+)\.\s+(.*$)/gm, '<li>$2</li>')
-    
-    // 处理水平线
-    .replace(/^---+$/gm, '<hr>')
-    
-    // 处理图片
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
-    
-    // 处理段落 (避免处理已经处理过的HTML标签)
-    .replace(/^(?!<[a-z]|\s*$)(.*$)/gm, '<p>$1</p>');
+  // 处理删除线
+  html = html.replace(/\~\~(.*?)\~\~/g, '<del>$1</del>');
   
-  // 处理列表 (将连续的列表项包装在<ul>或<ol>中)
-  html = html.replace(/(<li>.*<\/li>)(\s*<li>)/g, '$1<ul>$2');
-  html = html.replace(/(<\/li>)(?!\s*<li>|\s*<ul>|\s*<ol>)/g, '$1</ul>');
+  // 处理链接
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  
+  // 处理行内代码
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   
   // 处理引用块
-  html = html.replace(/^&gt; (.*$)/gm, '<blockquote>$1</blockquote>');
+  html = processBlockquotes(html);
+  
+  // 处理无序列表
+  html = html.replace(/^\s*[\-\*]\s+(.*$)/gm, '<li>$1</li>');
+  
+  // 处理有序列表
+  html = html.replace(/^\s*(\d+)\.\s+(.*$)/gm, '<li>$2</li>');
+  
+  // 处理水平线
+  html = html.replace(/^(\s*)(---+|\*\*\*+|___+)(\s*)$/gm, '<hr>');
+  
+  // 处理图片
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+  
+  // 处理段落 (避免处理已经处理过的HTML标签)
+  html = html.replace(/^(?!<[a-z]|\s*$)(.*$)/gm, '<p>$1</p>');
+  
+  // 处理列表 (将连续的列表项包装在<ul>或<ol>中)
+  html = processList(html);
   
   return html;
+}
+
+// 处理列表，将列表项包装在适当的ul/ol标签中
+function processList(html) {
+  // 检测连续的列表项并包装在<ul>中
+  let inList = false;
+  let listType = '';
+  let parts = html.split('\n');
+  let result = [];
+  
+  for (let i = 0; i < parts.length; i++) {
+    let line = parts[i];
+    
+    if (line.trim().startsWith('<li>')) {
+      if (!inList) {
+        inList = true;
+        listType = 'ul'; // 默认为无序列表
+        result.push('<ul>');
+      }
+      result.push(line);
+    } else {
+      if (inList) {
+        inList = false;
+        result.push(`</${listType}>`);
+      }
+      result.push(line);
+    }
+  }
+  
+  if (inList) {
+    result.push(`</${listType}>`);
+  }
+  
+  return result.join('\n');
+}
+
+// 处理引用块
+function processBlockquotes(html) {
+  let lines = html.split('\n');
+  let inBlockquote = false;
+  let result = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    
+    // 检测引用块开始
+    if (line.trim().startsWith('&gt; ') || line.trim().startsWith('> ')) {
+      let content = line.replace(/^(\s*)?(&gt;|>)\s+(.*)$/gm, '$3');
+      
+      if (!inBlockquote) {
+        inBlockquote = true;
+        result.push('<blockquote>');
+      }
+      
+      // 添加引用块内容
+      if (content.trim() !== '') {
+        result.push(`<p>${content}</p>`);
+      }
+    } else {
+      if (inBlockquote) {
+        inBlockquote = false;
+        result.push('</blockquote>');
+      }
+      result.push(line);
+    }
+  }
+  
+  if (inBlockquote) {
+    result.push('</blockquote>');
+  }
+  
+  return result.join('\n');
+}
+
+// 在处理列表之前格式化文档，确保列表项前有空行
+function formatLists(html) {
+  let lines = html.split('\n');
+  let result = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    let nextLine = i < lines.length - 1 ? lines[i + 1] : '';
+    
+    result.push(line);
+    
+    // 如果当前行不是列表项，下一行是列表项，且当前行不是空行，添加一个空行
+    if (!line.trim().startsWith('-') && !line.trim().startsWith('*') && !line.trim().match(/^\d+\./) && 
+        (nextLine.trim().startsWith('-') || nextLine.trim().startsWith('*') || nextLine.trim().match(/^\d+\./)) && 
+        line.trim() !== '') {
+      result.push('');
+    }
+  }
+  
+  return result.join('\n');
 }
 
 // 添加语法高亮功能
@@ -192,6 +294,26 @@ function highlightCode(element, language) {
         .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="comment">$1</span>');
       break;
       
+    case 'json':
+      // 高亮JSON
+      code = code
+        .replace(/(".*?"):/g, '<span class="property">$1:</span>')
+        .replace(/: (".*?")/g, ': <span class="string">$1</span>')
+        .replace(/: (true|false|null)\b/g, ': <span class="keyword">$1</span>')
+        .replace(/: (\d+)\b/g, ': <span class="number">$1</span>');
+      break;
+      
+    case 'markdown':
+    case 'md':
+      // 高亮Markdown语法
+      code = code
+        .replace(/^(#+) (.*$)/gm, '<span class="keyword">$1</span> <span class="tag">$2</span>')
+        .replace(/(\*\*.*?\*\*)/g, '<span class="keyword">$1</span>')
+        .replace(/(\*.*?\*)/g, '<span class="string">$1</span>')
+        .replace(/(`.*?`)/g, '<span class="property">$1</span>')
+        .replace(/(]\(.*?\))/g, '<span class="number">$1</span>');
+      break;
+      
     // 可以添加更多语言的处理
   }
   
@@ -201,10 +323,13 @@ function highlightCode(element, language) {
   // 添加一个语言标签
   if (language && language !== 'undefined') {
     const container = element.parentElement;
-    const langLabel = document.createElement('div');
-    langLabel.className = 'lang-label';
-    langLabel.textContent = language;
-    container.appendChild(langLabel);
+    // 检查是否已经存在语言标签，避免重复添加
+    if (!container.querySelector('.lang-label')) {
+      const langLabel = document.createElement('div');
+      langLabel.className = 'lang-label';
+      langLabel.textContent = language;
+      container.appendChild(langLabel);
+    }
   }
 }
 
