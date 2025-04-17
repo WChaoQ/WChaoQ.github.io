@@ -12,11 +12,11 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
 });
 
-// 生成随机颜色函数
+// 改进的颜色方案函数 - 使用更柔和的颜色并确保可读性
 function getRandomColor() {
-  // 定义一组漂亮的颜色
+  // 定义一组更柔和的颜色
   const colors = [
-    '#2563eb', // 蓝色
+    '#3b82f6', // 蓝色
     '#10b981', // 绿色
     '#f97316', // 橙色
     '#8b5cf6', // 紫色
@@ -50,8 +50,8 @@ async function loadNotes() {
       const contentResponse = await fetch(`/notes/${note.filename}`);
       const markdownContent = await contentResponse.text();
       
-      // 解析Markdown内容（只需要标题和摘要）
-      const content = parseMarkdown(markdownContent, true);
+      // 解析Markdown内容
+      const content = parseMarkdown(markdownContent);
       
       // 生成随机颜色
       const randomColor = getRandomColor();
@@ -59,29 +59,51 @@ async function loadNotes() {
       // 创建笔记卡片
       const noteCard = document.createElement('div');
       noteCard.className = 'note-card';
-      noteCard.style.borderLeftColor = randomColor; // 使用随机颜色
+      noteCard.style.borderLeftColor = randomColor;
       noteCard.setAttribute('data-filename', note.filename);
       
-      // 填充笔记卡片内容
+      // 填充笔记卡片内容（现在直接显示内容，不需要阅读全文按钮）
       noteCard.innerHTML = `
         <h3>${content.title || note.title}</h3>
         <p class="date">${formatDate(note.date)}</p>
-        <!-- 删除了标签部分 -->
-        <p class="summary">${content.summary}</p>
-        <a class="read-more" href="note.html?note=${encodeURIComponent(note.filename)}">阅读全文</a>
+        <div class="note-content-preview">${content.fullContent}</div>
       `;
       
       // 添加到容器
       notesContainer.appendChild(noteCard);
       
       // 添加点击事件（点击整个卡片跳转到笔记详情页）
-      noteCard.addEventListener('click', function(e) {
-        // 如果点击的不是"阅读全文"链接（避免重复触发）
-        if (!e.target.classList.contains('read-more')) {
-          window.location.href = `note.html?note=${encodeURIComponent(note.filename)}`;
-        }
+      noteCard.addEventListener('click', function() {
+        window.location.href = `note.html?note=${encodeURIComponent(note.filename)}`;
+      });
+      
+      // 添加鼠标悬停动画效果
+      noteCard.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-8px)';
+        this.style.boxShadow = '0 12px 20px rgba(0, 0, 0, 0.15)';
+      });
+      
+      noteCard.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
       });
     }
+    
+    // 添加滚动时的动画效果
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, {
+      threshold: 0.1
+    });
+    
+    document.querySelectorAll('.note-card').forEach(card => {
+      observer.observe(card);
+    });
     
   } catch (error) {
     console.error('加载笔记失败:', error);
@@ -89,13 +111,12 @@ async function loadNotes() {
   }
 }
 
-// Markdown解析函数 - 改进对代码块的处理
+// 改进的Markdown解析函数
 function parseMarkdown(markdown, summaryOnly = false) {
-  // 从Markdown中提取标题、摘要和完整内容
+  // 从Markdown中提取标题和完整内容
   const lines = markdown.split('\n');
   let title = '';
   let summary = '';
-  let fullContent = '';
   
   // 寻找第一个标题作为笔记标题
   for (let i = 0; i < lines.length; i++) {
@@ -137,20 +158,17 @@ function parseMarkdown(markdown, summaryOnly = false) {
   // 限制摘要长度
   summary = summary.length > 150 ? summary.substring(0, 150) + '...' : summary;
   
-  // 如果只需要摘要信息，不处理完整内容
-  if (!summaryOnly) {
-    // 对Markdown进行HTML转换
-    fullContent = markdownToHtml(markdown);
-  }
+  // 进行Markdown到HTML的转换
+  const fullContent = markdownToHtml(markdown);
   
   return { title, summary, fullContent };
 }
 
-// 改进的Markdown到HTML转换函数
+// 改进的Markdown到HTML转换函数 - 添加语法高亮支持
 function markdownToHtml(markdown) {
   // 处理代码块 (```code```)
   let html = markdown.replace(/```(.*?)\n([\s\S]*?)```/g, function(match, language, code) {
-    return `<pre><code class="language-${language.trim()}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+    return `<pre class="code-block"><code class="language-${language.trim()}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
   });
   
   // 处理标题
@@ -165,7 +183,7 @@ function markdownToHtml(markdown) {
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     
     // 处理链接
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
     
     // 处理行内代码
     .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -221,15 +239,18 @@ async function loadNoteDetail(filename) {
       <div class="note-header" style="border-left-color: ${randomColor}">
         <h1>${content.title || note.title}</h1>
         <p class="date">${formatDate(note.date)}</p>
-        <!-- 删除了标签部分 -->
       </div>
       <div class="note-content">
         ${content.fullContent}
       </div>
       <div class="note-footer">
-        <a href="index.html#notes" class="btn back-btn">返回笔记列表</a>
+        <a href="index.html#notes" class="back-btn">返回笔记列表</a>
       </div>
     `;
+    
+    // 添加页面加载动画
+    document.querySelector('.note-header').style.animation = 'fadeIn 0.8s ease-in-out';
+    document.querySelector('.note-content').style.animation = 'slideUp 1s ease-in-out';
     
   } catch (error) {
     console.error('加载笔记详情失败:', error);
@@ -237,7 +258,7 @@ async function loadNoteDetail(filename) {
   }
 }
 
-// 格式化日期
+// 格式化日期 - 优化为更友好的格式
 function formatDate(dateString) {
   const date = new Date(dateString);
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
