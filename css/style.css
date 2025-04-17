@@ -2,16 +2,15 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  transition: all 0.3s ease;
 }
 
 body {
   font-family: 'Inter', sans-serif;
   line-height: 1.6;
   color: #1e293b;
-  background: #f1f5f9;
+  background: #f8fafc;
 }
-
-/* 删除了header部分相关的样式 */
 
 section {
   padding: 4rem 2rem;
@@ -21,78 +20,126 @@ section {
 }
 
 #home {
-  /* 删除了背景渐变 */
   min-height: 50vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
 }
 
 .hero {
   background: #fff;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
   max-width: 600px;
+  transform: translateY(0);
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0px); }
 }
 
 h1, h2 {
-  color: #1e293b;
+  color: #0f172a;
   margin-bottom: 1.5rem;
+  font-weight: 700;
 }
 
 h1 {
   font-size: 2.8rem;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
 }
-
-/* 删除了.btn相关样式 */
 
 .notes-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.8rem;
+  margin-top: 2.5rem;
 }
 
 .note-card {
   background: #fff;
-  padding: 1.2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s, box-shadow 0.3s;
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   opacity: 0;
   transform: translateY(20px);
   animation: fadeIn 0.6s forwards;
   cursor: pointer;
   position: relative;
-  border-left: 4px solid; /* 颜色将通过JavaScript动态设置 */
+  border-left: 4px solid; /* 颜色通过JavaScript动态设置 */
+  overflow: hidden;
+  height: 400px;
 }
 
 .note-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.12);
 }
 
-.read-more {
-  display: inline-block;
+/* 笔记内容预览区域 */
+.note-content-preview {
+  margin-top: 1rem;
+  text-align: left;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 8px;
+  position: relative;
+}
+
+/* 自定义滚动条 */
+.note-content-preview::-webkit-scrollbar {
+  width: 6px;
+}
+
+.note-content-preview::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.note-content-preview::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.note-content-preview::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 代码块样式 */
+.code-block {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  border-left: 3px solid #3b82f6;
+  font-family: 'Fira Code', monospace;
+}
+
+.note-card code {
+  background: #f1f5f9;
+  border-radius: 4px;
+  font-family: monospace;
+  padding: 0.2rem 0.4rem;
   color: #2563eb;
-  text-decoration: none;
-  font-weight: 600;
-  margin-top: 0.5rem;
 }
 
-.read-more:hover {
-  text-decoration: underline;
-}
-
-/* 删除了特定分类的样式 */
-
-.note-card:nth-child(1) { animation-delay: 0.2s; }
-.note-card:nth-child(2) { animation-delay: 0.4s; }
-.note-card:nth-child(3) { animation-delay: 0.6s; }
-.note-card:nth-child(4) { animation-delay: 0.8s; }
-.note-card:nth-child(5) { animation-delay: 1.0s; }
-.note-card:nth-child(6) { animation-delay: 1.2s; }
+.note-card:nth-child(1) { animation-delay: 0.1s; }
+.note-card:nth-child(2) { animation-delay: 0.2s; }
+.note-card:nth-child(3) { animation-delay: 0.3s; }
+.note-card:nth-child(4) { animation-delay: 0.4s; }
+.note-card:nth-child(5) { animation-delay: 0.5s; }
+.note-card:nth-child(6) { animation-delay: 0.6s; }
 
 @keyframes fadeIn {
   to {
@@ -101,52 +148,69 @@ h1 {
   }
 }
 
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .note-card h3 {
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   margin-bottom: 0.5rem;
+  color: #0f172a;
+  position: relative;
+  display: inline-block;
+}
+
+.note-card h3::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 40px;
+  height: 3px;
+  background: currentColor;
+  transition: width 0.3s;
+}
+
+.note-card:hover h3::after {
+  width: 100%;
 }
 
 .date {
   color: #64748b;
   font-size: 0.85rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.8rem;
+  font-style: italic;
 }
-
-/* 删除了.tag相关样式 */
 
 .summary {
   margin-bottom: 1rem;
   color: #4b5563;
 }
 
-.full-content {
-  margin-top: 1rem;
-  color: #1e293b;
-  transition: max-height 0.3s ease;
-  text-align: left;
-}
-
-.hidden {
-  display: none;
-}
-
 /* 笔记详情页样式 */
 .note-detail-container {
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
   margin: 2rem auto;
   max-width: 900px;
-  padding: 2rem;
+  padding: 2.5rem;
 }
 
 .note-header {
   border-bottom: 1px solid #e2e8f0;
   margin-bottom: 2rem;
-  padding-bottom: 1rem;
+  padding-bottom: 1.5rem;
   position: relative;
-  border-left: 4px solid; /* 颜色将通过JavaScript动态设置 */
-  padding-left: 1rem;
+  border-left: 4px solid; /* 颜色通过JavaScript动态设置 */
+  padding-left: 1.2rem;
 }
 
 .note-content {
@@ -157,11 +221,25 @@ h1 {
 .note-content h1,
 .note-content h2,
 .note-content h3 {
-  margin: 1.5rem 0 1rem;
+  margin: 1.8rem 0 1rem;
+  color: #0f172a;
+}
+
+.note-content h1 {
+  font-size: 2.4rem;
+}
+
+.note-content h2 {
+  font-size: 1.8rem;
+}
+
+.note-content h3 {
+  font-size: 1.4rem;
 }
 
 .note-content p {
   margin-bottom: 1.2rem;
+  color: #334155;
 }
 
 .note-content code {
@@ -169,6 +247,7 @@ h1 {
   border-radius: 4px;
   font-family: monospace;
   padding: 0.2rem 0.4rem;
+  color: #2563eb;
 }
 
 .note-content pre {
@@ -177,6 +256,7 @@ h1 {
   padding: 1rem;
   overflow-x: auto;
   margin: 1.5rem 0;
+  border-left: 3px solid #3b82f6;
 }
 
 .note-content pre code {
@@ -190,51 +270,71 @@ h1 {
   padding-left: 2rem;
 }
 
+.note-content li {
+  margin-bottom: 0.4rem;
+}
+
+.note-content a {
+  color: #3b82f6;
+  text-decoration: none;
+  border-bottom: 1px dashed;
+  transition: all 0.2s;
+}
+
+.note-content a:hover {
+  color: #2563eb;
+  border-bottom: 1px solid;
+}
+
 .note-footer {
   border-top: 1px solid #e2e8f0;
-  margin-top: 2rem;
+  margin-top: 2.5rem;
   padding-top: 1.5rem;
   text-align: center;
 }
 
 .back-btn {
   display: inline-block;
-  padding: 0.6rem 1.5rem;
-  background: #e2e8f0;
-  color: #1e293b;
+  padding: 0.8rem 1.8rem;
+  background: #3b82f6;
+  color: #fff;
   text-decoration: none;
   border-radius: 8px;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: all 0.3s;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
 }
 
 .back-btn:hover {
-  background: #cbd5e1;
+  background: #2563eb;
   transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(59, 130, 246, 0.4);
 }
 
 footer {
   background: transparent;
-  color: #1e293b;
+  color: #64748b;
   text-align: center;
-  padding: 1.5rem;
-  margin-top: 2rem;
+  padding: 2rem;
+  margin-top: 3rem;
+  font-size: 0.9rem;
 }
 
 .social-links a {
-  color: #2563eb;
+  color: #3b82f6;
   text-decoration: none;
   margin: 0 0.5rem;
   transition: color 0.3s;
+  font-weight: 500;
 }
 
 .social-links a:hover {
-  color: #f97316;
+  color: #2563eb;
 }
 
 @media (max-width: 768px) {
   h1 {
-    font-size: 2.2rem;
+    font-size: 2.4rem;
   }
 
   .notes-container {
@@ -242,35 +342,43 @@ footer {
   }
 
   .hero {
-    padding: 1.5rem;
+    padding: 1.8rem;
   }
   
   section {
-    padding: 2rem 1rem;
+    padding: 2.5rem 1.5rem;
   }
   
   .note-detail-container {
-    padding: 1.5rem;
-    margin: 1rem;
-  }
-}
-
-/* 完善响应式布局，添加更小屏幕的适配 */
-@media (max-width: 480px) {
-  h1 {
-    font-size: 1.8rem;
-  }
-  
-  .hero {
-    padding: 1rem;
+    padding: 1.8rem;
+    margin: 1.5rem 1rem;
   }
   
   .note-card {
-    padding: 1rem;
+    height: auto;
+    max-height: 450px;
+  }
+  
+  .note-content-preview {
+    max-height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 2rem;
+  }
+  
+  .hero {
+    padding: 1.5rem;
+  }
+  
+  .note-card {
+    padding: 1.2rem;
   }
   
   .note-detail-container {
-    padding: 1rem;
-    margin: 0.5rem;
+    padding: 1.2rem;
+    margin: 1rem 0.5rem;
   }
 }
